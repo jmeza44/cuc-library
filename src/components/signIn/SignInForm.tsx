@@ -3,10 +3,18 @@ import useAuth from "../../hooks/authHook/AuthHook";
 import { UserData } from "../../services/UserService";
 import { Button, Label, Spinner, TextInput } from "flowbite-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../common/toastAlert/ToastAlert";
 
 const SignInForm = () => {
-  const { currentUser, loadingUser, loadingUserData, error, signUp } =
-    useAuth();
+  const {
+    currentUser,
+    currentUserData,
+    loadingUser,
+    loadingUserData,
+    error,
+    signUp,
+  } = useAuth();
+  const { setToastMessage, setToastStyle, show } = useToast();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -15,8 +23,24 @@ const SignInForm = () => {
   const [lastName, setLastName] = useState("");
 
   useEffect(() => {
-    if (currentUser && !loadingUser && !loadingUserData && !error) {
-      setTimeout(() => navigate("/"), 500);
+    if (
+      currentUser &&
+      currentUserData &&
+      !loadingUser &&
+      !loadingUserData &&
+      !error
+    ) {
+      setToastMessage(
+        `Welcome, ${currentUserData.firstName} ${currentUserData.lastName}`
+      );
+      setToastStyle("success");
+      show();
+      setTimeout(() => navigate("/"), 1000);
+    }
+    if (error) {
+      setToastMessage(error);
+      setToastStyle("error");
+      show();
     }
   }, [currentUser, loadingUser, loadingUserData, error]);
 

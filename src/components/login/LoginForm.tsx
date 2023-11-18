@@ -2,17 +2,42 @@ import { Button, Label, Spinner, TextInput } from "flowbite-react";
 import useAuth from "../../hooks/authHook/AuthHook";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../common/toastAlert/ToastAlert";
 
 const LoginForm: React.FC = () => {
-  const { currentUser, loadingUser, loadingUserData, error, logIn } = useAuth();
+  const {
+    currentUser,
+    currentUserData,
+    loadingUser,
+    loadingUserData,
+    error,
+    logIn,
+  } = useAuth();
+  const { setToastMessage, setToastStyle, show } = useToast();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   useEffect(() => {
-    if (currentUser && !loadingUser && !loadingUserData && !error) {
-      setTimeout(() => navigate("/"), 500);
+    if (
+      currentUser &&
+      currentUserData &&
+      !loadingUser &&
+      !loadingUserData &&
+      !error
+    ) {
+      setToastMessage(
+        `Welcome, ${currentUserData.firstName} ${currentUserData.lastName}`
+      );
+      setToastStyle("success");
+      show();
+      setTimeout(() => navigate("/"), 1000);
+    }
+    if (error) {
+      setToastMessage(error);
+      setToastStyle("error");
+      show();
     }
   }, [currentUser, loadingUser, loadingUserData, error]);
 
@@ -20,10 +45,6 @@ const LoginForm: React.FC = () => {
     e.preventDefault();
     logIn(email, password);
   };
-
-  if (error) {
-    return <p>Error: {error}</p>;
-  }
 
   return (
     <div className="flex h-full w-full items-center justify-center">

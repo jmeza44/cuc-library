@@ -1,19 +1,28 @@
-import { DarkThemeToggle, Sidebar, Spinner } from "flowbite-react";
+import { DarkThemeToggle, Sidebar } from "flowbite-react";
 import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import useAuth from "../../hooks/authHook/AuthHook";
 import {
-  HiArrowSmRight,
-  HiChartPie,
-  HiTable,
-  HiUser,
-  HiHome,
-  HiOutlineLogout,
-} from "react-icons/hi";
-import { PiBooks } from "react-icons/pi";
+  IoEnterOutline,
+  IoFingerPrintSharp,
+  IoGridOutline,
+  IoHomeOutline,
+  IoLibraryOutline,
+  IoLogOutOutline,
+  IoPersonOutline,
+} from "react-icons/io5";
+import { useToast } from "../common/toastAlert/ToastAlert";
 
 const Dashboard: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { currentUser, currentUserData, logOut } = useAuth();
+  const { setToastMessage, setToastStyle, show } = useToast();
+
+  const handleOnLogOutClick = (): void => {
+    setToastMessage("Come back soon!");
+    setToastStyle("info");
+    show();
+    logOut();
+  };
 
   return (
     <div className="grid w-full grid-cols-12 bg-gray-100 dark:bg-gray-900">
@@ -32,7 +41,7 @@ const Dashboard: React.FC<{ children: ReactNode }> = ({ children }) => {
               </Sidebar.Logo>
 
               {currentUser && currentUserData ? (
-                <Sidebar.Item icon={HiUser}>
+                <Sidebar.Item icon={IoPersonOutline}>
                   <div className="h-full w-full p-2">
                     <b className="cursor-default font-semibold">
                       {currentUserData.firstName} {currentUserData.lastName}
@@ -42,14 +51,14 @@ const Dashboard: React.FC<{ children: ReactNode }> = ({ children }) => {
               ) : null}
 
               <NavLink to={"/"}>
-                <Sidebar.Item icon={HiHome}>
+                <Sidebar.Item icon={IoHomeOutline}>
                   <div className="h-full w-full p-2">Home</div>
                 </Sidebar.Item>
               </NavLink>
 
               {currentUser && currentUserData?.role === "admin" ? (
                 <NavLink to={"/admin"}>
-                  <Sidebar.Item icon={HiChartPie}>
+                  <Sidebar.Item icon={IoGridOutline}>
                     <div className="h-full w-full p-2">Admin dashboard</div>
                   </Sidebar.Item>
                 </NavLink>
@@ -59,7 +68,7 @@ const Dashboard: React.FC<{ children: ReactNode }> = ({ children }) => {
               (currentUserData?.role === "admin" ||
                 currentUserData?.role === "user") ? (
                 <NavLink to={"/library"}>
-                  <Sidebar.Item icon={PiBooks}>
+                  <Sidebar.Item icon={IoLibraryOutline}>
                     <div className="h-full w-full p-2">Library</div>
                   </Sidebar.Item>
                 </NavLink>
@@ -68,7 +77,7 @@ const Dashboard: React.FC<{ children: ReactNode }> = ({ children }) => {
             <Sidebar.ItemGroup>
               {!currentUser && !currentUserData ? (
                 <NavLink to={"/login"}>
-                  <Sidebar.Item icon={HiArrowSmRight}>
+                  <Sidebar.Item icon={IoFingerPrintSharp}>
                     <div className="h-full w-full p-2">Log In</div>
                   </Sidebar.Item>
                 </NavLink>
@@ -76,15 +85,18 @@ const Dashboard: React.FC<{ children: ReactNode }> = ({ children }) => {
 
               {!currentUser && !currentUserData ? (
                 <NavLink to={"/signin"}>
-                  <Sidebar.Item icon={HiTable}>
+                  <Sidebar.Item icon={IoEnterOutline}>
                     <div className="h-full w-full p-2">Sign In</div>
                   </Sidebar.Item>
                 </NavLink>
               ) : null}
 
               {currentUser && currentUserData ? (
-                <Sidebar.Item icon={HiOutlineLogout}>
-                  <button className="h-full w-full p-2" onClick={logOut}>
+                <Sidebar.Item icon={IoLogOutOutline}>
+                  <button
+                    className="h-full w-full p-2"
+                    onClick={() => handleOnLogOutClick()}
+                  >
                     Log Out
                   </button>
                 </Sidebar.Item>

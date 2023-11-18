@@ -12,6 +12,7 @@ import {
   createUser,
   findUserByEmail,
 } from "../../services/UserService";
+import { FirebaseError } from "firebase/app";
 
 interface AuthContext {
   currentUser: User | null;
@@ -22,6 +23,22 @@ interface AuthContext {
   signUp: (email: string, password: string, userData: UserData) => void;
   logIn: (email: string, password: string) => void;
   logOut: () => void;
+}
+
+export interface ErrorResponse {
+  error: Error;
+}
+
+export interface Error {
+  code: number;
+  message: string;
+  errors: ErrorDetails[];
+}
+
+export interface ErrorDetails {
+  message: string;
+  domain: string;
+  reason: string;
 }
 
 export const AuthContext = React.createContext<AuthContext | undefined>(
@@ -65,6 +82,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     userData: UserData
   ) => {
     try {
+      setError(null);
       setLoadingUser(true);
       await createUserWithEmailAndPassword(authService, email, password);
       // Handle errors during SignUp
@@ -77,7 +95,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       setLoadingUserData(false);
       // Handle errors creating the user
     } catch (error) {
+      const errorResponse = error as FirebaseError;
       setCurrentUser(null);
+      setError(errorResponse.message);
       setLoadingUser(false);
       setLoadingUserData(false);
     }
@@ -85,6 +105,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const logIn = async (email: string, password: string) => {
     try {
+      setError(null);
       setLoadingUser(true);
       setLoadingUserData(true);
       await signInWithEmailAndPassword(authService, email, password);
@@ -94,7 +115,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       setLoadingUserData(false);
       // Handle errors retrieving the users data
     } catch (error) {
+      const errorResponse = error as FirebaseError;
       setCurrentUser(null);
+      setError(errorResponse.message);
       setLoadingUser(false);
       setLoadingUserData(false);
     }
