@@ -12,12 +12,12 @@ import {
   createUser,
   findUserByEmail,
 } from "../../services/UserService";
-import { Navigate } from "react-router-dom";
 
 interface AuthContext {
   currentUser: User | null;
   currentUserData: UserData | null;
-  loading: boolean;
+  loadingUser: boolean;
+  loadingUserData: boolean;
   error: string | null;
   signUp: (email: string, password: string, userData: UserData) => void;
   logIn: (email: string, password: string) => void;
@@ -33,20 +33,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentUserData, setCurrentUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loadingUser, setLoadingUser] = useState<boolean>(false);
+  const [loadingUserData, setLoadingUserData] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = authService.onAuthStateChanged(
-      (user) => {
+      async (user) => {
         setCurrentUser(user);
+        if (user && user.email && !currentUserData) {
+          const currentUserDataRetrieved = await findUserByEmail(user.email);
+          setCurrentUserData({ ...currentUserDataRetrieved } as UserData);
+          setLoadingUserData(false);
+        }
         setError(null);
-        setLoading(false);
+        setLoadingUser(false);
       },
       (error) => {
         setCurrentUser(null);
         setError(error.message);
-        setLoading(false);
+        setLoadingUser(false);
       }
     );
 
@@ -59,39 +65,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     userData: UserData
   ) => {
     try {
-      setLoading(true);
+      setLoadingUser(true);
       await createUserWithEmailAndPassword(authService, email, password);
       // Handle errors during SignUp
+      setLoadingUserData(true);
       const createdUserRef = await createUser(userData);
       if (createdUserRef) {
         const currentUserDataRetrieved = await findUserByEmail(email);
         setCurrentUserData({ ...currentUserDataRetrieved } as UserData);
-        Navigate({ to: "/", replace: true, relative: "route" });
       }
+      setLoadingUserData(false);
       // Handle errors creating the user
     } catch (error) {
       setCurrentUser(null);
-      setLoading(false);
+      setLoadingUser(false);
+      setLoadingUserData(false);
     }
   };
 
   const logIn = async (email: string, password: string) => {
     try {
-      setLoading(true);
+      setLoadingUser(true);
+      setLoadingUserData(true);
       await signInWithEmailAndPassword(authService, email, password);
       // Handle errors during Login
       const currentUserDataRetrieved = await findUserByEmail(email);
       setCurrentUserData({ ...currentUserDataRetrieved } as UserData);
+      setLoadingUserData(false);
       // Handle errors retrieving the users data
     } catch (error) {
       setCurrentUser(null);
-      setLoading(false);
+      setLoadingUser(false);
+      setLoadingUserData(false);
     }
   };
 
   const logOut = async () => {
-    setLoading(true);
+    setLoadingUser(true);
+    setLoadingUserData(true);
     await authService.signOut();
+    setCurrentUserData(null);
+    setLoadingUserData(false);
   };
 
   return (
@@ -99,7 +113,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       value={{
         currentUser,
         currentUserData,
-        loading,
+        loadingUser: loadingUser,
+        loadingUserData: loadingUserData,
         error,
         logIn,
         logOut,

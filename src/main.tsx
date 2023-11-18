@@ -3,8 +3,9 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import Login from "./components/login/Login";
+import LoginForm from "./components/login/LoginForm";
 import SignInForm from "./components/signIn/SignInForm";
+import Home from "./components/home/Home";
 
 const router = createBrowserRouter([
   {
@@ -13,13 +14,11 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: (
-          <div className="flex items-center justify-center text-5xl">Home</div>
-        ),
+        element: <Home />,
       },
       {
         path: "login",
-        element: <Login />,
+        element: <LoginForm />,
       },
       {
         path: "signin",

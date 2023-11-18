@@ -1,15 +1,24 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useAuth from "../../hooks/authHook/AuthHook";
 import { UserData } from "../../services/UserService";
 import { Button, Label, Spinner, TextInput } from "flowbite-react";
+import { useNavigate } from "react-router-dom";
 
 const SignInForm = () => {
-  const { loading, signUp } = useAuth();
+  const { currentUser, loadingUser, loadingUserData, error, signUp } =
+    useAuth();
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+
+  useEffect(() => {
+    if (currentUser && !loadingUser && !loadingUserData && !error) {
+      setTimeout(() => navigate("/"), 500);
+    }
+  }, [currentUser, loadingUser, loadingUserData, error]);
 
   const handleFormSubmit = (e: { preventDefault: () => void }) => {
     e.preventDefault();
@@ -21,26 +30,19 @@ const SignInForm = () => {
     } as UserData);
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <Spinner aria-label="Loading spinner" size="xl" />
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-full w-full items-center justify-center">
       <form
-        className="z-10 mx-auto mt-8 w-96 max-w-md rounded-md border border-gray-200 px-6 py-5 shadow-2xl dark:border-gray-800"
+        className="z-10 w-96 max-w-md rounded-md border border-gray-200 bg-gray-50 px-6 py-5 shadow-2xl transition-shadow delay-150 ease-out dark:border-gray-800 dark:bg-gray-900"
         onSubmit={handleFormSubmit}
       >
         <div className="mb-4">
           <div className="mb-2 block">
-            <Label htmlFor="email" value="Your email" />
+            <Label htmlFor="email-signin" value="Your email" />
           </div>
           <TextInput
             id="email"
+            name="email"
             type="email"
             placeholder="name@flowbite.com"
             value={email}
@@ -51,10 +53,11 @@ const SignInForm = () => {
 
         <div className="mb-4">
           <div className="mb-2 block">
-            <Label htmlFor="password" value="Your password" />
+            <Label htmlFor="password-signin" value="Your password" />
           </div>
           <TextInput
             id="password"
+            name="password"
             type="password"
             placeholder="**********"
             value={password}
@@ -65,7 +68,7 @@ const SignInForm = () => {
 
         <div className="mb-4">
           <div className="mb-2 block">
-            <Label htmlFor="firstName" value="Your first name" />
+            <Label htmlFor="firstName" value="First name" />
           </div>
           <TextInput
             id="firstName"
@@ -79,7 +82,7 @@ const SignInForm = () => {
 
         <div className="mb-4">
           <div className="mb-2 block">
-            <Label htmlFor="lastName" value="Your last name" />
+            <Label htmlFor="lastName" value="Last name" />
           </div>
           <TextInput
             id="lastName"
@@ -91,9 +94,16 @@ const SignInForm = () => {
           />
         </div>
 
-        <Button className="mt-2" type="submit">
-          Submit
-        </Button>
+        {!loadingUser && !loadingUserData ? (
+          <Button className="mt-2" type="submit">
+            Submit
+          </Button>
+        ) : (
+          <Button className="mt-2" type="button">
+            <Spinner aria-label="Spinner button example" size="sm" />
+            <span className="pl-3">Loading...</span>
+          </Button>
+        )}
       </form>
     </div>
   );
