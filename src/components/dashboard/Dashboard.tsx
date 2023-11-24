@@ -12,9 +12,11 @@ import {
   IoPersonOutline,
 } from "react-icons/io5";
 import { useToast } from "../common/toastAlert/ToastAlert";
+import useBooks from "../../hooks/booksHook/BooksHook";
 
 const Dashboard: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { currentUser, currentUserData, logOut } = useAuth();
+  const { resetStates } = useBooks();
   const { setToastMessage, setToastStyle, show } = useToast();
 
   const handleOnLogOutClick = (): void => {
@@ -22,12 +24,13 @@ const Dashboard: React.FC<{ children: ReactNode }> = ({ children }) => {
     setToastStyle("info");
     show();
     logOut();
+    resetStates();
   };
 
   return (
     <div className="grid w-full grid-cols-12 bg-gray-100 dark:bg-gray-900">
       {/* Side Bar */}
-      <div className="col-span-2 min-h-screen rounded-r border-r border-gray-200 bg-gray-50 dark:z-10 dark:border-0 dark:border-gray-500 dark:bg-gray-800 dark:shadow-lg">
+      <div className="col-span-0 hidden min-h-screen rounded-r border-r border-gray-200 bg-gray-50 dark:z-10 dark:border-0 dark:border-gray-500 dark:bg-gray-800 dark:shadow-lg lg:col-span-2 lg:block">
         <Sidebar className="h-full w-full text-center">
           <Sidebar.Items>
             <Sidebar.ItemGroup>
@@ -110,7 +113,7 @@ const Dashboard: React.FC<{ children: ReactNode }> = ({ children }) => {
         </Sidebar>
       </div>
       {/* Dashboard Content */}
-      <div className="col-span-10 overflow-y-auto bg-gray-100 dark:bg-gray-950 dark:text-white">
+      <div className="col-span-12 overflow-y-auto bg-gray-100 dark:bg-gray-950 dark:text-white lg:col-span-10">
         <div className="h-full w-full">{children}</div>
       </div>
     </div>

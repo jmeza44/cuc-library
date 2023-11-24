@@ -1,5 +1,6 @@
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, orderBy, startAfter } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, orderBy, startAfter, getDoc } from 'firebase/firestore';
 import { storeService } from './FirebaseService';
+import { FirebaseError } from '@firebase/util';
 
 export interface Book {
   id?: string;
@@ -8,15 +9,16 @@ export interface Book {
   description: string;
   available: boolean;
   year: string;
+  borrowedBy: string | null;
 }
 
 export interface PaginationOptions {
   pageSize: number;
-  startAfterDoc?: any;
+  page: number;
 }
 
 export interface SortingOptions {
-  field: string;
+  field: 'title' | 'author' | 'description' | 'year';
   direction: 'asc' | 'desc';
 }
 
@@ -29,7 +31,6 @@ export interface BooksResult {
   books: Book[];
   totalBooks: number;
   totalPages: number;
-  lastVisible?: Book; // Adjust the type based on your Firestore document structure
 }
 
 export const getAllBooks = async (
@@ -41,7 +42,7 @@ export const getAllBooks = async (
   let booksQuery = query(booksCollection);
 
   // Apply filtering if provided
-  if (filteringOptions) {
+  if (filteringOptions && filteringOptions.value && filteringOptions.value !== "" && filteringOptions.field && filteringOptions.field !== "") {
     booksQuery = query(booksQuery, where(filteringOptions.field, '==', filteringOptions.value));
   }
 
@@ -49,28 +50,44 @@ export const getAllBooks = async (
   booksQuery = query(booksQuery, orderBy(sortingOptions.field, sortingOptions.direction));
 
   // Apply pagination
-  if (paginationOptions.startAfterDoc) {
-    booksQuery = query(booksQuery, startAfter(paginationOptions.startAfterDoc));
-  }
+  const skip = (paginationOptions.page) * paginationOptions.pageSize;
+  booksQuery = query(booksQuery, startAfter(skip));
 
   try {
     const querySnapshot = await getDocs(booksQuery);
 
     const totalBooks = querySnapshot.size;
 
-    const books = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Book));
+    let books = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Book));
 
     const totalPages = Math.ceil(totalBooks / paginationOptions.pageSize);
+
+    books = books.slice(0, paginationOptions.pageSize);
 
     return {
       books,
       totalBooks,
       totalPages,
-      lastVisible: { ...querySnapshot.docs[querySnapshot.docs.length - 1].data() } as Book,
     };
   } catch (error) {
     console.error('Error getting books:', error);
     return null;
+  }
+};
+
+export const getBooksBorrowedByUser = async (userEmail: string) => {
+  try {
+    const booksCollection = collection(storeService, 'books');
+    let booksQuery = query(booksCollection);
+    booksQuery = query(booksQuery, where("borrowedBy", '==', userEmail));
+    const querySnapshot = await getDocs(booksQuery);
+
+    const books = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Book));
+
+    return books;
+  } catch (error) {
+    console.error('Error getting books:', error);
+    throw error;
   }
 };
 
@@ -118,20 +135,22 @@ export const findBookByAuthor = async (author: string) => {
   }
 };
 
-export const createBook = async (bookData: Book) => {
+export const createBook = async (bookData: Book): Promise<string | FirebaseError> => {
   const booksCollection = collection(storeService, 'books');
 
   try {
     const newBookRef = await addDoc(booksCollection, bookData);
     return newBookRef.id; // Return the ID of the newly created book
   } catch (error) {
+    const errorResponse = error as FirebaseError;
     console.error('Error creating book:', error);
-    return null;
+    return errorResponse;
   }
 };
 
-export const updateBookById = async (id: string, updatedBookData: Book) => {
-  const bookDocRef = doc(storeService, 'books', id);
+export const updateBookById = async (updatedBookData: Book) => {
+  if (!updatedBookData.id) return false;
+  const bookDocRef = doc(storeService, 'books', updatedBookData.id);
 
   try {
     await updateDoc(bookDocRef, { ...updatedBookData });
@@ -151,5 +170,65 @@ export const deleteBookById = async (id: string) => {
   } catch (error) {
     console.error('Error deleting book:', error);
     return false;
+  }
+};
+
+export const borrowBook = async (bookId: string, userEmail: string): Promise<{ success: boolean, message: string; }> => {
+  const booksCollection = collection(storeService, 'books');
+  const bookDocRef = doc(booksCollection, bookId);
+
+  try {
+    const bookSnapshot = await getDoc(bookDocRef);
+
+    if (bookSnapshot.exists()) {
+      const bookData = bookSnapshot.data() as Book;
+
+      // Check if the book is available
+      if (bookData.available) {
+        // Update the book's 'borrowedBy' field with the user's email
+        await updateDoc(bookDocRef, {
+          borrowedBy: userEmail,
+          available: false, // Mark the book as not available
+        });
+        return { success: true, message: `Book successfully borrowed` };
+      } else {
+        return { success: false, message: `Book is not available for borrowing` };
+      }
+    } else {
+      return { success: false, message: `Book not found` };
+    }
+  } catch (error) {
+    const errorResponse = error as FirebaseError;
+    return { success: false, message: errorResponse.message };
+  }
+};
+
+export const returnBookById = async (bookId: string): Promise<{ success: boolean, message: string; }> => {
+  const booksCollection = collection(storeService, 'books');
+  const bookDocRef = doc(booksCollection, bookId);
+
+  try {
+    const bookSnapshot = await getDoc(bookDocRef);
+
+    if (bookSnapshot.exists()) {
+      const bookData = bookSnapshot.data() as Book;
+
+      // Check if the book is currently borrowed
+      if (bookData.borrowedBy) {
+        // Update the book's 'borrowedBy' field to null and mark the book as available
+        await updateDoc(bookDocRef, {
+          borrowedBy: null,
+          available: true,
+        });
+        return { success: true, message: `Book successfully returned` };
+      } else {
+        return { success: false, message: `Book is not currently borrowed` };
+      }
+    } else {
+      return { success: false, message: `Book not found.` };
+    }
+  } catch (error) {
+    const errorResponse = error as FirebaseError;
+    return { success: false, message: errorResponse.message };
   }
 };

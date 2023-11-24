@@ -35,7 +35,7 @@ const SignInForm = () => {
       );
       setToastStyle("success");
       show();
-      setTimeout(() => navigate("/"), 1000);
+      setTimeout(() => navigate("/library"), 1000);
     }
     if (error) {
       setToastMessage(error);

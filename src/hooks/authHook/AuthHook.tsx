@@ -13,6 +13,7 @@ import {
   findUserByEmail,
 } from "../../services/UserService";
 import { FirebaseError } from "firebase/app";
+import { useNavigate } from "react-router-dom";
 
 interface AuthContext {
   currentUser: User | null;
@@ -25,22 +26,6 @@ interface AuthContext {
   logOut: () => void;
 }
 
-export interface ErrorResponse {
-  error: Error;
-}
-
-export interface Error {
-  code: number;
-  message: string;
-  errors: ErrorDetails[];
-}
-
-export interface ErrorDetails {
-  message: string;
-  domain: string;
-  reason: string;
-}
-
 export const AuthContext = React.createContext<AuthContext | undefined>(
   undefined
 );
@@ -48,6 +33,8 @@ export const AuthContext = React.createContext<AuthContext | undefined>(
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
+  const navigate = useNavigate();
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentUserData, setCurrentUserData] = useState<UserData | null>(null);
   const [loadingUser, setLoadingUser] = useState<boolean>(false);
@@ -126,6 +113,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const logOut = async () => {
     setLoadingUser(true);
     setLoadingUserData(true);
+    navigate("/login");
     await authService.signOut();
     setCurrentUserData(null);
     setLoadingUserData(false);

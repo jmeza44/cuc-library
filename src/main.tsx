@@ -6,6 +6,8 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import LoginForm from "./components/login/LoginForm";
 import SignInForm from "./components/signIn/SignInForm";
 import Home from "./components/home/Home";
+import AdminDashboard from "./components/admin/AdminDashboard";
+import Library from "./components/library/Library";
 
 const router = createBrowserRouter([
   {
@@ -23,6 +25,14 @@ const router = createBrowserRouter([
       {
         path: "signin",
         element: <SignInForm />,
+      },
+      {
+        path: "library",
+        element: <Library />,
+      },
+      {
+        path: "admin",
+        element: <AdminDashboard />,
       },
     ],
   },

@@ -32,7 +32,15 @@ const LoginForm: React.FC = () => {
       );
       setToastStyle("success");
       show();
-      setTimeout(() => navigate("/"), 1000);
+      setTimeout(() => {
+        if (currentUserData.role === "user") {
+          navigate("/library");
+        } else if (currentUserData.role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
+      }, 1000);
     }
     if (error) {
       setToastMessage(error);
