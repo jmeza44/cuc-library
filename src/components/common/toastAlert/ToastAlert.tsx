@@ -59,7 +59,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({
     <ToastContext.Provider value={contextValue}>
       {/* Render the Toast component */}
       {showToast && (
-        <div className="fixed right-5 top-5 ">
+        <div className="fixed right-5 top-5 z-[99]">
           <Toast>
             <div
               className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${

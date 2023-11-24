@@ -5,15 +5,20 @@ import {
   FilteringOptions,
   PaginationOptions,
   SortingOptions,
+  borrowBook,
   createBook,
   deleteBookById,
   getAllBooks,
+  getBooksBorrowedByUser,
+  returnBookById,
   updateBookById,
 } from "../../services/BookService";
 import { useToast } from "../../components/common/toastAlert/ToastAlert";
+import useAuth from "../authHook/AuthHook";
 
 interface BooksContext {
   booksPaginated: BooksResult | null;
+  booksBorrowedByCurrentUser: Book[] | null;
   bookToEdit: Book | null;
   editingBook: boolean;
   loadingBooks: boolean;
@@ -22,14 +27,18 @@ interface BooksContext {
   sortingOptions: SortingOptions;
   filteringOptions?: FilteringOptions;
   loadBooks: () => void;
+  loadBooksBorrowedByCurrentUser: () => void;
   addBook: (book: Book) => void;
   editBook: (book: Book) => void;
   deleteBook: (id: string) => void;
   setBookToEdit: (book: Book) => void;
   setEditingBook: (editing: boolean) => void;
+  borrowBookByCurrentUser: (bookId: string) => void;
+  returnBook: (bookId: string) => void;
   updatePaginationOptions: (paginationOptions: PaginationOptions) => void;
   updateSortingOptions: (sortingOptions: SortingOptions) => void;
   updateFilteringOptions: (filteringOptions?: FilteringOptions) => void;
+  resetStates: () => void;
 }
 
 export const BooksContext = React.createContext<BooksContext | undefined>(
@@ -42,6 +51,9 @@ export const BooksProvider: React.FC<{ children: ReactNode }> = ({
   const [booksPaginated, setBooksPaginated] = useState<BooksResult | null>(
     null
   );
+  const [booksBorrowedByCurrentUser, setBooksBorrowedByCurrentUser] = useState<
+    Book[] | null
+  >(null);
   const [bookToEdit, setBookToEdit] = useState<Book | null>(null);
   const [editingBook, setEditingBook] = useState<boolean>(false);
   const [loadingBooks, setLoadingBooks] = useState<boolean>(false);
@@ -57,6 +69,7 @@ export const BooksProvider: React.FC<{ children: ReactNode }> = ({
     FilteringOptions | undefined
   >(undefined);
 
+  const { currentUserData } = useAuth();
   const { setToastMessage, setToastStyle, show } = useToast();
 
   const loadBooks = async () => {
@@ -73,6 +86,15 @@ export const BooksProvider: React.FC<{ children: ReactNode }> = ({
     }
     setLoadingBooks(false);
     setBooksPaginated(getAllBooksResult);
+  };
+
+  const loadBooksBorrowedByCurrentUser = async () => {
+    if (currentUserData) {
+      const borrowedBooks = await getBooksBorrowedByUser(
+        currentUserData?.email
+      );
+      setBooksBorrowedByCurrentUser(borrowedBooks);
+    }
   };
 
   const addBook = async (book: Book) => {
@@ -139,11 +161,58 @@ export const BooksProvider: React.FC<{ children: ReactNode }> = ({
     loadBooks();
   };
 
+  const borrowBookByCurrentUser = async (bookId: string) => {
+    if (currentUserData) {
+      const result = await borrowBook(bookId, currentUserData.email);
+      setToastMessage(result.message);
+      setToastStyle(result.success ? "success" : "error");
+      show();
+      loadBooksBorrowedByCurrentUser();
+      loadBooks();
+    } else {
+      setToastMessage("Please Login");
+      setToastStyle("info");
+      show();
+    }
+  };
+
+  const returnBook = async (bookId: string) => {
+    if (currentUserData) {
+      const result = await returnBookById(bookId);
+      setToastMessage(result.message);
+      setToastStyle(result.success ? "success" : "error");
+      show();
+      loadBooksBorrowedByCurrentUser();
+      loadBooks();
+    } else {
+      setToastMessage("Please Login");
+      setToastStyle("info");
+      show();
+    }
+  };
+
+  const resetStates = () => {
+    setBooksPaginated(null);
+    setBooksBorrowedByCurrentUser(null);
+    setBookToEdit(null);
+    setEditingBook(false);
+    setLoadingBooks(false);
+    setAddingBook(false);
+    setPaginationOptions({ page: 1, pageSize: 10 });
+    setSortingOptions({
+      direction: "asc",
+      field: "title",
+    });
+    setFilteringOptions(undefined);
+  };
+
   return (
     <BooksContext.Provider
       value={{
         booksPaginated,
+        booksBorrowedByCurrentUser,
         loadingBooks,
+        loadBooksBorrowedByCurrentUser,
         addingBook,
         bookToEdit,
         editingBook,
@@ -156,9 +225,12 @@ export const BooksProvider: React.FC<{ children: ReactNode }> = ({
         editBook,
         setBookToEdit,
         setEditingBook,
+        borrowBookByCurrentUser,
+        returnBook,
         updatePaginationOptions,
         updateSortingOptions,
         updateFilteringOptions,
+        resetStates,
       }}
     >
       {children}

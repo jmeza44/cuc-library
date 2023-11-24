@@ -12,9 +12,11 @@ import {
   IoPersonOutline,
 } from "react-icons/io5";
 import { useToast } from "../common/toastAlert/ToastAlert";
+import useBooks from "../../hooks/booksHook/BooksHook";
 
 const Dashboard: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { currentUser, currentUserData, logOut } = useAuth();
+  const { resetStates } = useBooks();
   const { setToastMessage, setToastStyle, show } = useToast();
 
   const handleOnLogOutClick = (): void => {
@@ -22,6 +24,7 @@ const Dashboard: React.FC<{ children: ReactNode }> = ({ children }) => {
     setToastStyle("info");
     show();
     logOut();
+    resetStates();
   };
 
   return (
