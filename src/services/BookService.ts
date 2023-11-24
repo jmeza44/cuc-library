@@ -1,5 +1,6 @@
 import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, orderBy, startAfter } from 'firebase/firestore';
 import { storeService } from './FirebaseService';
+import { FirebaseError } from '@firebase/util';
 
 export interface Book {
   id?: string;
@@ -12,11 +13,11 @@ export interface Book {
 
 export interface PaginationOptions {
   pageSize: number;
-  startAfterDoc?: any;
+  page: number;
 }
 
 export interface SortingOptions {
-  field: string;
+  field: 'title' | 'author' | 'description' | 'year';
   direction: 'asc' | 'desc';
 }
 
@@ -29,7 +30,6 @@ export interface BooksResult {
   books: Book[];
   totalBooks: number;
   totalPages: number;
-  lastVisible?: Book; // Adjust the type based on your Firestore document structure
 }
 
 export const getAllBooks = async (
@@ -41,7 +41,7 @@ export const getAllBooks = async (
   let booksQuery = query(booksCollection);
 
   // Apply filtering if provided
-  if (filteringOptions) {
+  if (filteringOptions && filteringOptions.value && filteringOptions.value !== "" && filteringOptions.field && filteringOptions.field !== "") {
     booksQuery = query(booksQuery, where(filteringOptions.field, '==', filteringOptions.value));
   }
 
@@ -49,24 +49,24 @@ export const getAllBooks = async (
   booksQuery = query(booksQuery, orderBy(sortingOptions.field, sortingOptions.direction));
 
   // Apply pagination
-  if (paginationOptions.startAfterDoc) {
-    booksQuery = query(booksQuery, startAfter(paginationOptions.startAfterDoc));
-  }
+  const skip = (paginationOptions.page) * paginationOptions.pageSize;
+  booksQuery = query(booksQuery, startAfter(skip));
 
   try {
     const querySnapshot = await getDocs(booksQuery);
 
     const totalBooks = querySnapshot.size;
 
-    const books = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Book));
+    let books = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Book));
 
     const totalPages = Math.ceil(totalBooks / paginationOptions.pageSize);
+
+    books = books.slice(0, paginationOptions.pageSize);
 
     return {
       books,
       totalBooks,
       totalPages,
-      lastVisible: { ...querySnapshot.docs[querySnapshot.docs.length - 1].data() } as Book,
     };
   } catch (error) {
     console.error('Error getting books:', error);
@@ -118,20 +118,22 @@ export const findBookByAuthor = async (author: string) => {
   }
 };
 
-export const createBook = async (bookData: Book) => {
+export const createBook = async (bookData: Book): Promise<string | FirebaseError> => {
   const booksCollection = collection(storeService, 'books');
 
   try {
     const newBookRef = await addDoc(booksCollection, bookData);
     return newBookRef.id; // Return the ID of the newly created book
   } catch (error) {
+    const errorResponse = error as FirebaseError;
     console.error('Error creating book:', error);
-    return null;
+    return errorResponse;
   }
 };
 
-export const updateBookById = async (id: string, updatedBookData: Book) => {
-  const bookDocRef = doc(storeService, 'books', id);
+export const updateBookById = async (updatedBookData: Book) => {
+  if (!updatedBookData.id) return false;
+  const bookDocRef = doc(storeService, 'books', updatedBookData.id);
 
   try {
     await updateDoc(bookDocRef, { ...updatedBookData });
